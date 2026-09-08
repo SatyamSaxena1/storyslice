@@ -21,10 +21,14 @@ enum AudioTranscoder {
         var sampleRate = 44_100.0
         var channels = 2
 
-        if let description = track.formatDescriptions.first as? CMAudioFormatDescription,
-           let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(description)?.pointee {
-            if asbd.mSampleRate > 0 { sampleRate = asbd.mSampleRate }
-            if asbd.mChannelsPerFrame > 0 { channels = Int(asbd.mChannelsPerFrame) }
+        // Same CF-bridging note as AssetLoader: `as?` here always succeeds per
+        // the compiler, so the only real check is non-nil.
+        if let first = track.formatDescriptions.first {
+            let description = first as! CMAudioFormatDescription
+            if let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(description)?.pointee {
+                if asbd.mSampleRate > 0 { sampleRate = asbd.mSampleRate }
+                if asbd.mChannelsPerFrame > 0 { channels = Int(asbd.mChannelsPerFrame) }
+            }
         }
 
         // Downmix anything above stereo. Encoding >2 channels to AAC needs an

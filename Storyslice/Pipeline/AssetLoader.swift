@@ -71,9 +71,13 @@ enum AssetLoader {
             try await audio.loadPropertyValues(["formatDescriptions"])
         }
 
-        guard let format = video.formatDescriptions.first as? CMFormatDescription else {
+        // `as?` to a CF toll-free-bridged type "always succeeds" per the
+        // compiler -- there's no type-mismatch case, only nil-vs-non-nil, so
+        // the only real check is that a format description exists at all.
+        guard let first = video.formatDescriptions.first else {
             throw AVCompatError.unsupportedSource("its video track has no format description")
         }
+        let format = first as! CMFormatDescription
         let subType = CMFormatDescriptionGetMediaSubType(format)
 
         let transfer = transferFunction(of: format)
