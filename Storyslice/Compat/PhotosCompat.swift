@@ -3,9 +3,26 @@ import Photos
 import PhotosUI
 import UIKit
 
-// ponytail: temporary NSLog tracing while chasing a picker-selection issue
-// that leaves no crash report and no other trace. Delete every "STORYSLICE-DIAG"
-// line below once the picker is confirmed working.
+// ponytail: temporary tracing while chasing a picker-selection issue that
+// leaves no crash report and no other trace. NSLog output proved unreliable
+// to capture live (the unified-logging tooling available here only supports
+// a forward-looking capture window, which races any UI-driven event), so
+// this also appends to a plain file that can just be `cat`/`tail`ed after the
+// fact. Delete every diagLog call and this function once the picker works.
+func diagLog(_ message: String) {
+    NSLog("STORYSLICE-DIAG %@", message)
+    let line = "\(Date()) \(message)\n"
+    let url = URL(fileURLWithPath: "/var/mobile/Documents/storyslice-diag.log")
+    if let data = line.data(using: .utf8) {
+        if let handle = try? FileHandle(forWritingTo: url) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            try? handle.close()
+        } else {
+            try? data.write(to: url)
+        }
+    }
+}
 
 /// The only file in the project that contains `#available`.
 /// Everything downstream sees a single API regardless of iOS version.
@@ -58,7 +75,7 @@ final class VideoPicker: NSObject {
 
     func present(from presenter: UIViewController) {
         if #available(iOS 14, *) {
-            NSLog("STORYSLICE-DIAG presenting PHPickerViewController")
+            diagLog("presenting PHPickerViewController")
             var configuration = PHPickerConfiguration()
             configuration.filter = .videos
             configuration.selectionLimit = 1
@@ -89,21 +106,18 @@ final class VideoPicker: NSObject {
 @available(iOS 14, *)
 extension VideoPicker: PHPickerViewControllerDelegate {
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        NSLog("STORYSLICE-DIAG didFinishPicking count=%d providers=%@",
-              results.count, results.map { $0.itemProvider.registeredTypeIdentifiers })
+        diagLog("didFinishPicking count=\(results.count) providers=\(results.map { $0.itemProvider.registeredTypeIdentifiers })")
         picker.dismiss(animated: true)
         guard let provider = results.first?.itemProvider else {
-            NSLog("STORYSLICE-DIAG no itemProvider -> treating as cancel")
+            diagLog("no itemProvider -> treating as cancel")
             delegate?.videoPickerDidCancel(self)
             return
         }
         let name = provider.suggestedName ?? "Video"
         let hasMovie = provider.hasItemConformingToTypeIdentifier(Self.movieType)
-        NSLog("STORYSLICE-DIAG provider name=%@ hasMovieType=%@ allTypes=%@",
-              name, hasMovie ? "YES" : "NO", provider.registeredTypeIdentifiers)
+        diagLog("provider name=\(name) hasMovieType=\(hasMovie) allTypes=\(provider.registeredTypeIdentifiers)")
         provider.loadFileRepresentation(forTypeIdentifier: Self.movieType) { [weak self] url, error in
-            NSLog("STORYSLICE-DIAG loadFileRepresentation callback url=%@ error=%@",
-                  url?.absoluteString ?? "nil", String(describing: error))
+            diagLog("loadFileRepresentation callback url=\(url?.absoluteString ?? "nil") error=\(String(describing: error))")
             guard let self = self else { return }
 
             // The temp file at `url` is only guaranteed to exist for the
@@ -116,10 +130,10 @@ extension VideoPicker: PHPickerViewControllerDelegate {
             if let url = url {
                 do {
                     let copied = try self.adopt(url)
-                    NSLog("STORYSLICE-DIAG adopted to %@", copied.absoluteString)
+                    diagLog("adopted to \(copied.absoluteString)")
                     outcome = .success(copied)
                 } catch {
-                    NSLog("STORYSLICE-DIAG adopt() threw %@", String(describing: error))
+                    diagLog("adopt() threw \(String(describing: error))")
                     outcome = .failure(error)
                 }
             } else {
