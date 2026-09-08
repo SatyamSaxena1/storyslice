@@ -14,11 +14,9 @@ targets:
     sources:
       - Storyslice
     info:
+      # File already exists with its own permission strings and launch
+      # storyboard reference; XcodeGen uses it as-is.
       path: Storyslice/Info.plist
-      properties:
-        UILaunchScreen: {}
-        NSPhotoLibraryUsageDescription: "Storyslice needs access to your videos to split them into Story-ready clips."
-        NSPhotoLibraryAddUsageDescription: "Storyslice saves your split clips back to Photos, in posting order."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.satyamsaxena.storyslice
