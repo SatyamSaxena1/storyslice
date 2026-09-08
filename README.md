@@ -23,7 +23,7 @@ Set your team in **Signing & Capabilities** before running on a device.
 ## Test
 
 ```bash
-xcodebuild test -project Storyslice.xcodeproj -scheme Storyslice -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -project Storyslice.xcodeproj -scheme Storyslice -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 - `SegmentPlanTests`, `TransformTests` — pure math, no GPU, no media.
