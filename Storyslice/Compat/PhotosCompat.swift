@@ -11,8 +11,14 @@ import UIKit
 // fact. Delete every diagLog call and this function once the picker works.
 func diagLog(_ message: String) {
     NSLog("STORYSLICE-DIAG %@", message)
+    // A sandboxed, properly-signed app can only write inside its own
+    // container -- resolve it via the real API rather than a hardcoded path
+    // (an earlier version hardcoded /var/mobile/Documents, which is outside
+    // the sandbox and failed silently under `try?`).
+    guard let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    else { return }
     let line = "\(Date()) \(message)\n"
-    let url = URL(fileURLWithPath: "/var/mobile/Documents/storyslice-diag.log")
+    let url = dir.appendingPathComponent("storyslice-diag.log")
     if let data = line.data(using: .utf8) {
         if let handle = try? FileHandle(forWritingTo: url) {
             handle.seekToEndOfFile()
