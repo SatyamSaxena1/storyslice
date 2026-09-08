@@ -31,6 +31,34 @@ xcodebuild test -project Storyslice.xcodeproj -scheme Storyslice -destination 'p
   round-trips them through the real pipeline. Needs a Metal device: a physical
   iPhone or an Apple-silicon simulator.
 
+## Sideloading via CI + a jailbreak (no Mac needed)
+
+`.github/workflows/build.yml` builds an unsigned `.app`/`.ipa` on a hosted
+macOS runner. To get it onto a device with no Apple Developer account and no
+Mac in reach, sign it on-device with a free-account resigning tool (this
+project used **ReProvision**, via a rootless jailbreak's Filza → Open In →
+ReProvision Again → Install flow). Two gotchas that cost real debugging time
+and are easy to hit again:
+
+1. **Trust the developer cert once, per rotation.** A freshly-signed app will
+   silently fail to launch (no crash log, just bounces back to the home
+   screen) until you go to **Settings → General → VPN & Device Management →
+   [the Apple Development profile] → Trust**. Free-tier certs expire in ~7
+   days, so this repeats on each rotation.
+2. **The resigning tool regenerates `Info.plist` from scratch**, discarding
+   every custom key the CI build produced -- including
+   `NSPhotoLibraryUsageDescription` / `NSPhotoLibraryAddUsageDescription`.
+   Without them, the very first Photos access call kills the app outright (a
+   TCC crash, not a normal exception). Run `scripts/patch-privacy-plist.sh`
+   as root on the device after every re-sign to merge them back into the
+   installed bundle in place; no re-signing needed afterward on a jailbreak
+   that doesn't enforce resource-hash validation.
+
+Symptoms that both premise breakdowns produce -- silent launch failure with
+zero diagnostics, or a crash that looks like a sandbox/file-race bug -- are
+covered in more depth in code comments near `LibraryWriter` and
+`PhotosCompat` if this happens again on a different device or resigning tool.
+
 ## Layout
 
 | Path | |

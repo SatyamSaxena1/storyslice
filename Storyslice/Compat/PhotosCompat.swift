@@ -3,33 +3,6 @@ import Photos
 import PhotosUI
 import UIKit
 
-// ponytail: temporary tracing while chasing a picker-selection issue that
-// leaves no crash report and no other trace. NSLog output proved unreliable
-// to capture live (the unified-logging tooling available here only supports
-// a forward-looking capture window, which races any UI-driven event), so
-// this also appends to a plain file that can just be `cat`/`tail`ed after the
-// fact. Delete every diagLog call and this function once the picker works.
-func diagLog(_ message: String) {
-    NSLog("STORYSLICE-DIAG %@", message)
-    // A sandboxed, properly-signed app can only write inside its own
-    // container -- resolve it via the real API rather than a hardcoded path
-    // (an earlier version hardcoded /var/mobile/Documents, which is outside
-    // the sandbox and failed silently under `try?`).
-    guard let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-    else { return }
-    let line = "\(Date()) \(message)\n"
-    let url = dir.appendingPathComponent("storyslice-diag.log")
-    if let data = line.data(using: .utf8) {
-        if let handle = try? FileHandle(forWritingTo: url) {
-            handle.seekToEndOfFile()
-            handle.write(data)
-            try? handle.close()
-        } else {
-            try? data.write(to: url)
-        }
-    }
-}
-
 /// The only file in the project that contains `#available`.
 /// Everything downstream sees a single API regardless of iOS version.
 
@@ -81,7 +54,6 @@ final class VideoPicker: NSObject {
 
     func present(from presenter: UIViewController) {
         if #available(iOS 14, *) {
-            diagLog("presenting PHPickerViewController")
             var configuration = PHPickerConfiguration()
             configuration.filter = .videos
             configuration.selectionLimit = 1
@@ -112,34 +84,26 @@ final class VideoPicker: NSObject {
 @available(iOS 14, *)
 extension VideoPicker: PHPickerViewControllerDelegate {
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        diagLog("didFinishPicking count=\(results.count) providers=\(results.map { $0.itemProvider.registeredTypeIdentifiers })")
         picker.dismiss(animated: true)
         guard let provider = results.first?.itemProvider else {
-            diagLog("no itemProvider -> treating as cancel")
             delegate?.videoPickerDidCancel(self)
             return
         }
         let name = provider.suggestedName ?? "Video"
-        let hasMovie = provider.hasItemConformingToTypeIdentifier(Self.movieType)
-        diagLog("provider name=\(name) hasMovieType=\(hasMovie) allTypes=\(provider.registeredTypeIdentifiers)")
         provider.loadFileRepresentation(forTypeIdentifier: Self.movieType) { [weak self] url, error in
-            diagLog("loadFileRepresentation callback url=\(url?.absoluteString ?? "nil") error=\(String(describing: error))")
             guard let self = self else { return }
 
             // The temp file at `url` is only guaranteed to exist for the
             // duration of this completion handler -- copy it out NOW,
             // synchronously, before hopping to the main queue. Deferring the
-            // copy into a `DispatchQueue.main.async` (as this used to do)
-            // races the system's own cleanup of that temp file and fails
-            // with "couldn't be opened because there is no such file".
+            // copy into a `DispatchQueue.main.async` races the system's own
+            // cleanup of that temp file and fails with "couldn't be opened
+            // because there is no such file".
             let outcome: Result<URL, Error>
             if let url = url {
                 do {
-                    let copied = try self.adopt(url)
-                    diagLog("adopted to \(copied.absoluteString)")
-                    outcome = .success(copied)
+                    outcome = .success(try self.adopt(url))
                 } catch {
-                    diagLog("adopt() threw \(String(describing: error))")
                     outcome = .failure(error)
                 }
             } else {
