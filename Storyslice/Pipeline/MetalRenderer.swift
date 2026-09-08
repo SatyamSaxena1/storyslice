@@ -239,9 +239,21 @@ final class MetalRenderer {
         // full-range case to branch on here.
         // 10-bit biplanar samples are left-aligned in 16-bit words, so reading
         // them as `r16Unorm` already yields ~code/1023.
-        let (offset, yScale, cScale): (Float, Float, Float) = source.isTenBit
-            ? (64.0 / 1023, 1023.0 / 876, 1023.0 / 896)
-            : (16.0 / 255, 255.0 / 219, 255.0 / 224)
+        // Split into a plain if/else, not a ternary-of-tuples: Swift's type
+        // checker times out on that shape ("unable to type-check this
+        // expression in reasonable time") once literal division is involved.
+        let offset: Float
+        let yScale: Float
+        let cScale: Float
+        if source.isTenBit {
+            offset = 64.0 / 1023
+            yScale = 1023.0 / 876
+            cScale = 1023.0 / 896
+        } else {
+            offset = 16.0 / 255
+            yScale = 255.0 / 219
+            cScale = 255.0 / 224
+        }
 
         return ConvertUniforms(
             ycbcrToRGB: ycbcr,
