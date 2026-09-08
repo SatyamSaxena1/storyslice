@@ -3,6 +3,10 @@ import Photos
 import PhotosUI
 import UIKit
 
+// ponytail: temporary NSLog tracing while chasing a picker-selection issue
+// that leaves no crash report and no other trace. Delete every "STORYSLICE-DIAG"
+// line below once the picker is confirmed working.
+
 /// The only file in the project that contains `#available`.
 /// Everything downstream sees a single API regardless of iOS version.
 
@@ -54,6 +58,7 @@ final class VideoPicker: NSObject {
 
     func present(from presenter: UIViewController) {
         if #available(iOS 14, *) {
+            NSLog("STORYSLICE-DIAG presenting PHPickerViewController")
             var configuration = PHPickerConfiguration()
             configuration.filter = .videos
             configuration.selectionLimit = 1
@@ -84,13 +89,21 @@ final class VideoPicker: NSObject {
 @available(iOS 14, *)
 extension VideoPicker: PHPickerViewControllerDelegate {
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        NSLog("STORYSLICE-DIAG didFinishPicking count=%d providers=%@",
+              results.count, results.map { $0.itemProvider.registeredTypeIdentifiers })
         picker.dismiss(animated: true)
         guard let provider = results.first?.itemProvider else {
+            NSLog("STORYSLICE-DIAG no itemProvider -> treating as cancel")
             delegate?.videoPickerDidCancel(self)
             return
         }
         let name = provider.suggestedName ?? "Video"
+        let hasMovie = provider.hasItemConformingToTypeIdentifier(Self.movieType)
+        NSLog("STORYSLICE-DIAG provider name=%@ hasMovieType=%@ allTypes=%@",
+              name, hasMovie ? "YES" : "NO", provider.registeredTypeIdentifiers)
         provider.loadFileRepresentation(forTypeIdentifier: Self.movieType) { [weak self] url, error in
+            NSLog("STORYSLICE-DIAG loadFileRepresentation callback url=%@ error=%@",
+                  url?.absoluteString ?? "nil", String(describing: error))
             guard let self = self else { return }
             DispatchQueue.main.async {
                 guard let url = url else {
@@ -99,8 +112,10 @@ extension VideoPicker: PHPickerViewControllerDelegate {
                 }
                 do {
                     let copied = try self.adopt(url)
+                    NSLog("STORYSLICE-DIAG adopted to %@", copied.absoluteString)
                     self.delegate?.videoPicker(self, didPick: copied, displayName: name)
                 } catch {
+                    NSLog("STORYSLICE-DIAG adopt() threw %@", String(describing: error))
                     self.delegate?.videoPicker(self, didFailWith: error)
                 }
             }

@@ -25,6 +25,7 @@ final class PickViewController: UIViewController {
     }
 
     @objc private func choose() {
+        NSLog("STORYSLICE-DIAG choose() tapped")
         picker.present(from: self)
     }
 
@@ -37,6 +38,7 @@ final class PickViewController: UIViewController {
 extension PickViewController: VideoPickerDelegate {
 
     func videoPicker(_ picker: VideoPicker, didPick url: URL, displayName: String) {
+        NSLog("STORYSLICE-DIAG PickViewController.didPick url=%@ name=%@", url.absoluteString, displayName)
         setBusy(true)
         Task { @MainActor [weak self] in
             guard let self = self else { return }
@@ -45,20 +47,25 @@ extension PickViewController: VideoPickerDelegate {
                 let asset = AVURLAsset(
                     url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
                 let info = try await AssetLoader.load(asset: asset, displayName: displayName)
+                NSLog("STORYSLICE-DIAG AssetLoader.load succeeded duration=%f", info.duration.seconds)
                 guard info.duration.seconds > 0 else {
                     throw AVCompatError.unsupportedSource("it has no playable duration")
                 }
                 self.navigationController?.pushViewController(
                     ConfigureViewController(source: info), animated: true)
             } catch {
+                NSLog("STORYSLICE-DIAG AssetLoader.load threw %@", String(describing: error))
                 self.presentError(error)
             }
         }
     }
 
-    func videoPickerDidCancel(_ picker: VideoPicker) {}
+    func videoPickerDidCancel(_ picker: VideoPicker) {
+        NSLog("STORYSLICE-DIAG PickViewController.didCancel")
+    }
 
     func videoPicker(_ picker: VideoPicker, didFailWith error: Error) {
+        NSLog("STORYSLICE-DIAG PickViewController.didFailWith %@", String(describing: error))
         presentError(error)
     }
 }
