@@ -105,17 +105,32 @@ extension VideoPicker: PHPickerViewControllerDelegate {
             NSLog("STORYSLICE-DIAG loadFileRepresentation callback url=%@ error=%@",
                   url?.absoluteString ?? "nil", String(describing: error))
             guard let self = self else { return }
-            DispatchQueue.main.async {
-                guard let url = url else {
-                    self.delegate?.videoPicker(self, didFailWith: error ?? AVCompatError.noVideoTrack)
-                    return
-                }
+
+            // The temp file at `url` is only guaranteed to exist for the
+            // duration of this completion handler -- copy it out NOW,
+            // synchronously, before hopping to the main queue. Deferring the
+            // copy into a `DispatchQueue.main.async` (as this used to do)
+            // races the system's own cleanup of that temp file and fails
+            // with "couldn't be opened because there is no such file".
+            let outcome: Result<URL, Error>
+            if let url = url {
                 do {
                     let copied = try self.adopt(url)
                     NSLog("STORYSLICE-DIAG adopted to %@", copied.absoluteString)
-                    self.delegate?.videoPicker(self, didPick: copied, displayName: name)
+                    outcome = .success(copied)
                 } catch {
                     NSLog("STORYSLICE-DIAG adopt() threw %@", String(describing: error))
+                    outcome = .failure(error)
+                }
+            } else {
+                outcome = .failure(error ?? AVCompatError.noVideoTrack)
+            }
+
+            DispatchQueue.main.async {
+                switch outcome {
+                case .success(let copied):
+                    self.delegate?.videoPicker(self, didPick: copied, displayName: name)
+                case .failure(let error):
                     self.delegate?.videoPicker(self, didFailWith: error)
                 }
             }
