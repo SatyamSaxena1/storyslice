@@ -22,6 +22,35 @@ final class PickViewController: UIViewController {
             chooseButton,
             spinner
         ]), in: view)
+
+        // ponytail: temporary -- settle whether this sandbox can write files
+        // AT ALL, independent of the picker. Two different videos have hit
+        // the identical "no such file" error, which looks less like a
+        // per-asset race and more like a broken container from re-signing.
+        DispatchQueue.main.async { [weak self] in self?.runSandboxSelfTest() }
+    }
+
+    private func runSandboxSelfTest() {
+        var lines: [String] = []
+        let fm = FileManager.default
+        for (label, base) in [("tmp", fm.temporaryDirectory),
+                              ("docs", fm.urls(for: .documentDirectory, in: .userDomainMask).first)] {
+            guard let base = base else { lines.append("\(label): no URL"); continue }
+            let file = base.appendingPathComponent("selftest-\(label).txt")
+            do {
+                try "hello".data(using: .utf8)!.write(to: file)
+                let readBack = try String(contentsOf: file, encoding: .utf8)
+                lines.append("\(label): OK wrote+read '\(readBack)' at \(file.path)")
+            } catch {
+                let ns = error as NSError
+                lines.append("\(label): FAILED \(ns.domain)#\(ns.code) \(ns.localizedDescription)")
+            }
+        }
+        let alert = UIAlertController(title: "DIAG: sandbox self-test",
+                                      message: lines.joined(separator: "\n\n"),
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 
     @objc private func choose() {
