@@ -1,0 +1,56 @@
+name: Storyslice
+options:
+  bundleIdPrefix: com.satyamsaxena
+
+configs:
+  Debug: debug
+  Release: release
+
+targets:
+  Storyslice:
+    type: application
+    platform: iOS
+    deploymentTarget: "13.0"
+    sources:
+      - Storyslice
+    info:
+      path: Storyslice/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSPhotoLibraryUsageDescription: "Storyslice needs access to your videos to split them into Story-ready clips."
+        NSPhotoLibraryAddUsageDescription: "Storyslice saves your split clips back to Photos, in posting order."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.satyamsaxena.storyslice
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "13.0"
+        # Sideloaded onto a jailbroken device, not the App Store: skip signing
+        # entirely rather than wiring up a Developer ID this project has no use for.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
+  StorysliceTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "13.0"
+    sources:
+      - StorysliceTests
+    dependencies:
+      - target: Storyslice
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
+schemes:
+  Storyslice:
+    build:
+      targets:
+        Storyslice: all
+        StorysliceTests: [test]
+    test:
+      targets:
+        - StorysliceTests
