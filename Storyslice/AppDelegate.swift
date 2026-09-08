@@ -19,8 +19,14 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
 extension UIViewController {
     func presentError(_ error: Error) {
+        // ponytail: full NSError detail while diagnosing the picker issue --
+        // file writes and log capture both proved unreliable in this jailbreak
+        // sandbox, but alerts render fine and screenshots read them just as
+        // well. Trim back to plain localizedDescription once resolved.
+        let ns = error as NSError
+        let message = "\(error.localizedDescription)\n\ndomain=\(ns.domain) code=\(ns.code)\nuserInfo=\(ns.userInfo)"
         let alert = UIAlertController(title: "Something went wrong",
-                                      message: error.localizedDescription,
+                                      message: message,
                                       preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)

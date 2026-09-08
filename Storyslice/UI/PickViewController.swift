@@ -63,6 +63,14 @@ extension PickViewController: VideoPickerDelegate {
 
     func videoPickerDidCancel(_ picker: VideoPicker) {
         diagLog("PickViewController.didCancel")
+        // ponytail: temporary -- make the silent/no-op cancel path visible on
+        // screen too, so every outcome (success, failure, cancel) shows
+        // something screenshots can read, with no dependency on logs or files.
+        let alert = UIAlertController(title: "DIAG: cancel path hit",
+                                      message: "videoPickerDidCancel ran -- PHPickerResult had no itemProvider.",
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 
     func videoPicker(_ picker: VideoPicker, didFailWith error: Error) {
