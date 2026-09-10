@@ -12,13 +12,20 @@ targets:
     platform: iOS
     deploymentTarget: "13.0"
     sources:
-      - Storyslice
-    info:
-      # File already exists with its own permission strings and launch
-      # storyboard reference; XcodeGen uses it as-is.
-      path: Storyslice/Info.plist
+      - path: Storyslice
+        excludes:
+          - Info.plist
     settings:
       base:
+        # Use the committed Info.plist verbatim. NOT XcodeGen's `info:` key --
+        # that *generates* a minimal plist from a template on every
+        # `xcodegen generate` and silently overwrites the real file (it dropped
+        # NSPhotoLibrary*UsageDescription, UILaunchStoryboardName, and the
+        # portrait lock). GENERATE_INFOPLIST_FILE=NO stops xcodebuild doing the
+        # same. $(...) vars still resolve; MinimumOSVersion / UIDeviceFamily are
+        # still injected from the deployment settings below.
+        INFOPLIST_FILE: Storyslice/Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
         PRODUCT_BUNDLE_IDENTIFIER: com.satyamsaxena.storyslice
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
