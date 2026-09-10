@@ -2,22 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!--
-	  Tuned for a TrollStore sideload, not the App Store.
-
-	  increased-memory-limit (iOS 15.0+): raises the jetsam ceiling so a 4K/HDR
-	  Metal frame pipeline is not killed near the default limit. TrollStore
-	  honours arbitrary entitlements via its CoreTrust bypass, so this takes
-	  effect. Ignored (harmless) on iOS 13/14 and on non-TrollStore installs.
-
-	  get-task-allow: keeps the app attachable by lldb/debugserver. Harmless
-	  for a sideload.
-
-	  Nothing private here. TrollStore injects platform-application itself.
-	  Fallback if either key ever blocks launch on a given device: replace the
-	  dict body with nothing -- the fully unsigned IPA still installs on
-	  TrollStore 2.x.
-	-->
 	<key>com.apple.developer.kernel.increased-memory-limit</key>
 	<true/>
 	<key>get-task-allow</key>
