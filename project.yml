@@ -23,8 +23,11 @@ targets:
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
         IPHONEOS_DEPLOYMENT_TARGET: "13.0"
-        # Sideloaded onto a jailbroken device, not the App Store: skip signing
-        # entirely rather than wiring up a Developer ID this project has no use for.
+        # Sideloaded onto a jailbroken device via TrollStore, not the App Store:
+        # xcodebuild skips signing; CI ad-hoc-signs the .app afterward with this
+        # entitlements file (see .github/workflows/build.yml). Referenced here so
+        # a local Mac Xcode build stays consistent -- inert with signing off.
+        CODE_SIGN_ENTITLEMENTS: Storyslice.entitlements
         CODE_SIGN_STYLE: Manual
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO

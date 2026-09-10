@@ -45,17 +45,51 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
-      - name: Package IPA
+      - name: Ad-hoc sign for TrollStore
+        run: |
+          set -e
+          APP=build/Build/Products/Release-iphoneos/Storyslice.app
+
+          # Deployment target is 13.0 (< 15.0), so xcodebuild must have copied
+          # the Swift concurrency back-deployment runtime into the bundle.
+          # Fail loudly if it did not -- the app would crash at launch on the
+          # device otherwise.
+          if [ ! -f "$APP/Frameworks/libswift_Concurrency.dylib" ]; then
+            echo "::error::libswift_Concurrency.dylib missing from $APP/Frameworks"
+            ls -la "$APP/Frameworks" || true
+            exit 1
+          fi
+
+          # codesign requires nested code (embedded dylibs/frameworks) to be
+          # signed before the containing bundle.
+          for f in "$APP"/Frameworks/*.dylib "$APP"/Frameworks/*.framework; do
+            [ -e "$f" ] || continue
+            codesign --force --sign - --timestamp=none "$f"
+          done
+
+          codesign --force --sign - --timestamp=none \
+            --entitlements Storyslice.entitlements \
+            --generate-entitlement-der \
+            "$APP"
+
+          codesign --verify --verbose "$APP"
+          codesign --display --entitlements :- "$APP" || true
+
+      - name: Package IPA and TIPA
         run: |
           set -e
           cd build/Build/Products/Release-iphoneos
+          rm -rf Payload
           mkdir Payload
-          cp -r Storyslice.app Payload/
-          zip -qr Storyslice.ipa Payload
-          mv Storyslice.ipa "$GITHUB_WORKSPACE/Storyslice.ipa"
+          cp -R Storyslice.app Payload/
+          zip -qry Storyslice.ipa Payload
+          cp Storyslice.ipa Storyslice.tipa
+          mv Storyslice.ipa Storyslice.tipa "$GITHUB_WORKSPACE/"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Storyslice-unsigned-ipa
-          path: Storyslice.ipa
+          name: Storyslice-trollstore
+          path: |
+            Storyslice.ipa
+            Storyslice.tipa
           retention-days: 14
