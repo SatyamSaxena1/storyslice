@@ -8,6 +8,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         let window = UIWindow(frame: UIScreen.main.bounds)
+        // Video tooling lives in the dark; the launch screen is dark too, so lock
+        // it and every semantic colour below follows without per-screen changes.
+        window.overrideUserInterfaceStyle = .dark
         window.rootViewController = UINavigationController(rootViewController: PickViewController())
         window.makeKeyAndVisible()
         self.window = window
@@ -28,14 +31,17 @@ extension UIViewController {
 }
 
 enum Style {
+    /// Warm accent shared with the app icon and launch screen.
+    static let accent = UIColor(red: 0.98, green: 0.58, blue: 0.29, alpha: 1)
+
     /// Target/action rather than `UIAction`: `UIControl.addAction(_:for:)` is
     /// iOS 14 and we ship to 13.
     static func button(_ title: String) -> UIButton {
         let button = UIButton(type: .system)
         button.setTitle(title, for: .normal)
         button.titleLabel?.font = .preferredFont(forTextStyle: .headline)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = Style.accent
+        button.setTitleColor(UIColor(white: 0.06, alpha: 1), for: .normal)
         button.layer.cornerRadius = 14
         button.translatesAutoresizingMaskIntoConstraints = false
         button.heightAnchor.constraint(equalToConstant: 52).isActive = true
